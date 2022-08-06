@@ -9,10 +9,17 @@ import fr.cogigroup.ingbank.repositories.BankAccountRepository;
 import fr.cogigroup.ingbank.repositories.OperationRepository;
 import fr.cogigroup.ingbank.services.BankAccountService;
 import fr.cogigroup.ingbank.services.OperationService;
-import org.aspectj.lang.annotation.Before;
+import org.junit.Before;
 import org.junit.jupiter.api.Test;
+import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -27,6 +34,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+
+@RunWith(SpringRunner.class)
+@AutoConfigureMockMvc
+@WebMvcTest
 class BankAccountConntrollerTest {
 
 
@@ -47,14 +58,22 @@ class BankAccountConntrollerTest {
 
     private MockMvc restMvc;
 
+    @Autowired
+    BankAccountConntroller bankAccountResources ;
 
-    @Before("")
+    @Before
     public void setUp() {
 
-        BankAccountConntroller bankAccountResources = new BankAccountConntroller(bankAccountService, operationService);
-        this.restMvc = MockMvcBuilders.standaloneSetup(bankAccountResources).setControllerAdvice(globalErrorHandler)
+        this.restMvc = MockMvcBuilders.standaloneSetup(bankAccountResources)
+                //.setControllerAdvice(globalErrorHandler)
                 .build();
 
+    }
+    @Test
+    public void printAccountState_should_return_error_message_and_404_code_status() throws Exception {
+        restMvc.perform(get("/api/accounts/155555555")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andExpect(status().is4xxClientError());
     }
     @Test
     @Transactional
@@ -62,8 +81,8 @@ class BankAccountConntrollerTest {
         BankAccount account = new BankAccount();
         account.setSolde(1000L);
         account.setOperations(new ArrayList<>());
-        bankAccountRepository.saveAndFlush(account);
-        restMvc.perform(get("/api/accounts/{id}", account.getId())
+        //bankAccountRepository.save(account);
+        restMvc.perform(get("/api/accounts/1", 1)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
@@ -102,11 +121,6 @@ class BankAccountConntrollerTest {
                 .andExpect(jsonPath("$.[*].id").value(hasItems(operation.getId().intValue(),operation2.getId().intValue())))
                 .andExpect(jsonPath("$.[*].amount").value(hasItems(operation.getMontant().intValue(),operation2.getMontant().intValue())))
                 .andExpect(jsonPath("$.[*].type").value(hasItems(operation.getType().toString(),operation2.getType().toString())));
-    }
-
-    @Test
-    @Transactional
-    void saveAccount() {
     }
 
     @Test
